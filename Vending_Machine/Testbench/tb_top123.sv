@@ -1,4 +1,5 @@
 `timescale 1ns/1ps
+`include "vending_machine.v"
 module tb;	
 	logic clk;
     logic reset_n;
@@ -13,7 +14,9 @@ module tb;
     logic [7:0] change;
 
     parameter MAX_MONEY = 40;
-
+    integer n;
+    logic out_constrain [5] = {3'b000, 3'b011, 3'b101, 3'b110, 3'b111};
+    //rand bit [1:0] index; 
     vending_machine dut (
         .clk(clk),
         .reset_n(reset_n),
@@ -44,9 +47,9 @@ module tb;
 			  money         = 3'b000;
 
 			  // Reset all outputs
-			  done          = 0;
-			  item_out      = 4'b0000;
-			  change        = 8'b00000000;
+			//  done          = 0;
+			//  item_out      = 4'b0000;
+			//  change        = 8'b00000000;
 
 			  // Hold reset for some cycles
 			  #10 reset_n = 0;   // Deassert reset
@@ -57,7 +60,9 @@ module tb;
 	endtask
 	task task2;
 			  #10 reset_n = 0;   // Deassert reset
-			  #5  reset_n = 1; 
+			      start = 1;
+			  #5  reset_n = 1;
+				start = 0; 
 				if (change == 0 && !done && item_out == 4'b0000) begin
 					$display("TEST PASS RESET CASE");
 				end else begin
@@ -72,23 +77,33 @@ module tb;
 		  integer sum_money;
 		  integer j;
 		  integer a;
+		  integer rand_type;
 		  const int item_price[4] = '{3, 12, 20, 45};
 		  sum_money_r = 0;
 		  sum_money = 0;
-        start = 'b1;
+        	  start = 'b1;
 		  reset_n = 'b1;
 		  cancel = 0;
-		  continue_buy = 1;
+		  continue_buy = $urandom_range(0,1);
 		  j = 0;
 		  a = 0;
-        item_in = $urandom%4;
-		  item_in = 2'b01;
+       		  item_in = $urandom_range(0,3);
+		  // item_in = 2'b01;
 		  // numchanges = ($urandom%5) + 	1;
-        numchanges = 1;
+        	  numchanges = 1;
 		  
 		  for (i = 0; i < 1; i = i + 1) begin
-			   money = $urandom % 8; 
-				money = 'b100;
+			//index = $urandom_range(0,3);
+				rand_type = $urandom_range(0,3); 
+				case(rand_type)
+				    0: begin money = 3'b001;    end
+				    1: begin money = 3'b010;   end
+				    2: begin money = 3'b100;  end
+				    3: begin money = out_constrain[$urandom_range(0,5)];  end
+				    default: begin money = out_constrain[$urandom_range(0,5)]; end
+				endcase
+			   //money = constrain[index]; 
+				//money = 'b100;
 				//done_money = $urandom;
 				done_money = 1;
 				case(money) 
@@ -113,7 +128,7 @@ module tb;
 		  while (!dut.U1.end_trans) begin
 		  		if (dut.U1.U1.state == 3'b010) begin
 						j = j+1;
-						if ((j == 3) /*& (change == 0 && !done  && item_out == 4'b0000)*/) begin
+						if ((j == 3) & (change == 0 && !done  && item_out == 4'b0000)) begin
 							$display("TEST PASS: HOLD IN RECEIVE MONEY");
 							a = 1;
 							break;
@@ -151,31 +166,19 @@ module tb;
 	 
 	 
     initial begin
-		  $display("%d", $time);
-        reset_value();
-		  $display("%d", $time);
-        task3();
-		  $display("%d", $time);
-		  reset_value();
-		  task3();
-		  $display("%d", $time);
-		  reset_value();
-		  task3();
-		  $display("%d", $time);
-		  reset_value();
-		  task3();
-		  $display("%d", $time);
-		  reset_value();
-		  task3();
-		  $display("%d", $time);
-		  reset_value();
-		  task3();
-		  $display("%d", $time);
-		  reset_value();
-		  task2();
-		  $display("%d", $time);
-		  reset_value();
+		
+		  repeat (10000) begin
+        	  reset_value();
+        	  task3();
+		  end
+		  repeat (50) begin
+        	  reset_value();
+        	  task2();
+		  end
+	
 
-		  #200	$stop;
+			
+	
+		  #200	$finish;
     end
 endmodule
